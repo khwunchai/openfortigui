@@ -1,75 +1,77 @@
+language: cpp
+compiler: clang
 git:
   depth: false
-  # quiet: true
-  # submodules: false
-language: cpp
-sudo: required
-dist: xenial
-compiler:
-  - clang
-  # - gcc
-os:
-  - linux
-  - osx
-osx_image:
-  # - xcode9.2
-  - xcode9.4
-  # - xcode10
-# addons:
-  # apt:
-    # update: true
+  quiet: true
+  submodules: true
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      sudo: required
+      addons:
+        apt:
+          update: true
+    - os: osx
+      osx_image: xcode9.4
+      env:
+        - HOMEBREW_NO_AUTO_UPDATE=1
+        - PATH=/usr/local/opt/qt5/bin:$PATH
+        - PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig:/usr/local/opt/qt/lib/pkgconfig:$PKG_CONFIG_PATH
+        - CPATH=/usr/local/opt/openssl/include:/usr/local/opt/qt/include:/usr/local/opt/qtkeychain/include:$CPATH
+        - LD_LIBRARY_PATH=/usr/local/opt/openssl/lib:/usr/local/opt/qtkeychain/lib:$LD_LIBRARY_PATH
+        - LDFLAGS="-L/usr/local/opt/openssl/lib -L/usr/local/opt/qtkeychain/lib $LDFLAGS"
+        - CPPFLAGS="-I/usr/local/opt/openssl/include -I/usr/local/opt/qtkeychain/include $CPPFLAGS"
+      cache:
+        directories:
+          - $HOME/Library/Caches/Homebrew
 install:
-  - git submodule init && git submodule update
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa; fi
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt update -qq; fi
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt install -y build-essential; fi
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt install -y qt5-default; fi
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt install -y libssl-dev; fi
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt install -y qt5keychain-dev; fi
-  # - if [ $TRAVIS_OS_NAME == osx ]; then brew update; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then export PATH=$OPENSSL_PREFIX/bin:$PATH && export LDFLAGS="-L$(brew --prefix openssl)/lib $LDFLAGS" && export CPPFLAGS="-I$(brew --prefix openssl)/include $CPPFLAGS"; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew install qt5; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew install qtkeychain && export LDFLAGS="-L$QT5KEYCHAIN_PREFIX/lib $LDFLAGS" && export CPPFLAGS="-I$QT5KEYCHAIN_PREFIX/include $CPPFLAGS"; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew install cryptopp && export LDFLAGS="-L$CRYPTOOPP_PREFIX/lib $LDFLAGS" && export CPPFLAGS="-I$CRYPTOOPP_PREFIX/include $CPPFLAGS"; fi
-
+  # - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa; fi
+  # - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt update -qq; fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt install -y devscripts build-essential debhelper lintian qt5-default libssl-dev qt5keychain-dev fakeroot; fi
+  - if [ $TRAVIS_OS_NAME == osx ]; then brew install openssl qt5 qtkeychain cryptopp; fi
 before_script:
+  # - if [ $TRAVIS_OS_NAME == osx ]; then export PATH=/usr/local/opt/qt5/bin:$PATH; fi
+  # - if [ $TRAVIS_OS_NAME == osx ]; then export PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig:/usr/local/opt/qt/lib/pkgconfig:$PKG_CONFIG_PATH; fi
+  # - if [ $TRAVIS_OS_NAME == osx ]; then export CPATH=/usr/local/opt/openssl/include:/usr/local/opt/qt/include:/usr/local/opt/qtkeychain/include:$CPATH; fi
+  # - if [ $TRAVIS_OS_NAME == osx ]; then export LD_LIBRARY_PATH=/usr/local/opt/openssl/lib:/usr/local/opt/qtkeychain/lib:$LD_LIBRARY_PATH; fi
+  # - if [ $TRAVIS_OS_NAME == osx ]; then export LDFLAGS="-L/usr/local/opt/openssl/lib -L/usr/local/opt/qtkeychain/lib $LDFLAGS"; fi
+  # - if [ $TRAVIS_OS_NAME == osx ]; then export CPPFLAGS="-I/usr/local/opt/openssl/include -I/usr/local/opt/qtkeychain/include $CPPFLAGS"; fi
   - qmake --version
   - make --version
-
 script:
-  - qmake
-  - make -j4
-# - cd ../krunner_openfortigui
-# - echo "y" | debuild -eDEB_BUILD_OPTIONS="parallel=4" -us -uc
-# - cd .. && mkdir build
-# - mv openforti*.deb build/
-# - if [ $TRAVIS_OS_NAME == linux ]; then ./build.sh --llvm-config=llvm-config --cc=clang --cxx=clang++; fi
-# - if [ $TRAVIS_OS_NAME == osx ]; then ./build.sh --with-include-dir=$OPENSSL_DIR/include --with-lib-dir=$OPENSSL_DIR/lib --llvm-config=llvm-config-3.8 --cc=clang-3.8 --cxx=clang++-3.8; fi
-# after_success:
-# - if [ $TRAVIS_OS_NAME == linux ]; then ./scripts/build_support.sh archive_codedb; fi
-# - if [ $TRAVIS_BRANCH == $TRAVIS_TAG ]; then ./scripts/deploy.sh release github website triggers; fi
-# branches:
-#   only:
-#   - master
-#   - "/^v\\d+\\./"
-# notifications:
-#   email: false
-#   irc:
-#     channels:
-#     - chat.freenode.net#rubinius
-#     template:
-#     - "%{repository}/%{branch} (%{commit} - %{author}): %{build_url}: %{message}"
-#   webhooks:
-#     urls:
-#       secure: h2oTAbAZF6+c6iv/kHoDGtl1mzQDF2vQSKWnO1pwfEz+L80lX9u3+JB+jsbYUcZ9smBRnRRghqxpLBmyzH3QZCrBdxKnTWfGc7I7lkTCFQZ5O3pPmIusO6W5zX+YUc+NHPPZXouHuHFmEeEB9vJnt/YB/fyGAGOIq+qXV4s+R9M=
-#     on_success: always
-#     on_failure: always
-#     on_start: always
+  - if [ $TRAVIS_OS_NAME == osx ]; then 
+      mkdir build && cd build && qmake .. && make -j4 && mv openfortigui/openfortigui.app OpenFortiGUI.app && cd ..;
+    fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then cd openfortigui; fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then debuild clean && echo "y" | debuild -eDEB_BUILD_OPTIONS="parallel=4" -us -uc; fi 
+  - if [ $TRAVIS_OS_NAME == linux ]; then cd ../krunner_openfortigui; fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then debuild clean && echo "y" | debuild -eDEB_BUILD_OPTIONS="parallel=4" -us -uc; fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then cd .. && mkdir build && mv openforti*.deb build/; fi
+  - ls build
+after_success:
+  - mkdir release
+  - if [ $TRAVIS_OS_NAME == osx ]; then hdiutil create -volname OpenFortiGUI -srcfolder build/OpenFortiGUI.app -ov -format UDZO release/OpenFortiGUI.dmg; fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then mv build/openfortigui/openfortigui.deb release/; fi
+  - ls .
+  - ls release
+deploy:
+  provider: releases
+  api_key:
+    secure: $GITHUB_TOKEN
+  tag_name: release-test
+  name: release-test
+  file_glob: true
+  file: 
+    - release/OpenFortiGUI.dmg
+  draft: true
+  skip_cleanup: true
+  overwrite: true
+  on:
+    all_branches: true
+    # tags: true
+notifications:
+  email: false
 env:
   global:
-  - OPENSSL_PREFIX=$(brew --prefix openssl)
-  - QT5KEYCHAIN_PREFIX=$(brew --prefix qtkeychain)
-  - CRYPTOOPP_PREFIX=$(brew --prefix cryptopp)
-  # - RBXOPT=-Xcodedb.cache.enabled=no
   - LANG=en_US.UTF-8
-  - HOMEBREW_NO_AUTO_UPDATE=1
